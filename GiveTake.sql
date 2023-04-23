@@ -1,3 +1,5 @@
+CREATE DATABASE givetake;
+
 CREATE TABLE user (
     user_name VARCHAR(150) NOT NULL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
