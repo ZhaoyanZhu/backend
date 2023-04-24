@@ -8,7 +8,7 @@ app.use(express.json());
 app.use(express.static("public"));
 
 app.get("/", (req,res)=>{
-    res.render('Welcome to the server')
+    res.json('Welcome to the server')
 })
 
 app.post("/list_items",async(req,res)=>{
