@@ -11,6 +11,41 @@ app.get("/", (req,res)=>{
     res.json('Welcome to the server')
 })
 
+app.get("/display_user_info", async(req,res)=>{
+    const {user_name}=req.body;
+    try{
+        const result=await pool.query("SELECT user_name,first_name,last_name,email,phone,credit FROM user WHERE user_name=$1",[user_name]);
+        res.json(result.rows[0]);
+
+    } catch(err){
+        console.error(err.message);
+    }
+});
+
+app.get("/display_purchase_history",async(req,res)=>{
+    const {user_name}=req.body;
+    try{
+        const purchase_history=await pool.query("SELECT * FROM order WHERE buyer=$1",[user_name]);
+        res.json(purchase_history.rows[0]);
+
+    } catch(err){
+        console.error(err.message);
+    }
+});
+
+app.get("/display_selling_history",async(req,res)=>{
+    const {user_name}=req.body;
+    try{
+        const sell_history=await pool.query("SELECT * FROM order WHERsell=$1",[user_name]);
+        res.json(sell_history.rows[0]);
+
+    } catch(err){
+        console.error(err.message);
+    }
+});
+
+
+
 app.post("/list_items",async(req,res)=>{
     try {
         const {
@@ -18,11 +53,12 @@ app.post("/list_items",async(req,res)=>{
             title,
             photo,
             price,
+            category,
             description
         }=req.body;
         const listing=await pool.query(
             "INSERT INTO item (user_listed, title, photo, price, category, description, list_time, item_status) VALUES($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP(),$7) RETURNING *",
-            [user,title,photo,price,description,"in stock"]
+            [user,title,photo,price,category,description,"in stock"]
             );
 
         res.json(listing.rows[0]);
@@ -57,6 +93,7 @@ app.post("/purchase",async(req,res)=>{
                     "INSERT INTO order (item_id,seller,buyer,shipping_from,shipping_to,order_status,order_date) VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP()) RETURNING *",
                     [item_id,seller,buyer,shipping_from,shipping_to,"paid"]
                 );
+                await pool.query("UPDATE item SET item_status=$1 WHERE item_id=$2",["out of stock",item_id]);
                 const NewBuyerBalance=BuyerBalance-price;
                 const result3=await pool.query("SELECT * FROM user WHERE user_name=$1",[seller]);
                 const SellerBalance=result3.rows[0].credit;
