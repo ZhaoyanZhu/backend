@@ -16,6 +16,7 @@ CREATE TABLE item (
     title VARCHAR(150) NOT NULL,
     photo bytea,
     price numeric(10,2) NOT NULL,
+    category VARCHAR(50),
     description VARCHAR(3000),
     list_time TIMESTAMP NOT NULL,
     item_status VARCHAR(50) NOT NULL CHECK(item_status='in stock' OR item_status='out of stock'),
