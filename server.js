@@ -12,8 +12,8 @@ app.get("/", (req,res)=>{
 })
 
 app.get("/display_user_info", async(req,res)=>{
-    const {user_name}=req.body;
     try{
+        const {user_name}=req.body;
         const result=await pool.query("SELECT user_name,first_name,last_name,email,phone,credit FROM user WHERE user_name=$1",[user_name]);
         res.json(result.rows[0]);
 
@@ -23,8 +23,8 @@ app.get("/display_user_info", async(req,res)=>{
 });
 
 app.get("/display_purchase_history",async(req,res)=>{
-    const {user_name}=req.body;
     try{
+        const {user_name}=req.body;
         const purchase_history=await pool.query("SELECT * FROM order WHERE buyer=$1",[user_name]);
         res.json(purchase_history.rows[0]);
 
@@ -34,8 +34,8 @@ app.get("/display_purchase_history",async(req,res)=>{
 });
 
 app.get("/display_selling_history",async(req,res)=>{
-    const {user_name}=req.body;
     try{
+        const {user_name}=req.body;
         const sell_history=await pool.query("SELECT * FROM order WHERsell=$1",[user_name]);
         res.json(sell_history.rows[0]);
 
@@ -43,6 +43,28 @@ app.get("/display_selling_history",async(req,res)=>{
         console.error(err.message);
     }
 });
+
+app.post("/leave_comments",async(req,res)=>{
+    try{
+        const{rating_receiver,order_id,score,content}=req.body;
+        const result=await pool.query("SELECT * FROM order WHERE order_id=$1",[order_id]);
+        const order_status=result.rows[0].order_status;
+        if (order_status != "completed"){
+            res.json({message:"this order is not completed"});
+        }
+        else{
+            const comment=await pool.query(
+                "INSERT INTO rating (rating_receiver,order,score,content) VALUES($1,$2,$3,$4) RETURNING *"
+                [rating_receiver,order_id,score,content]);
+            res.json(comment.rows[0]);
+        }
+        
+    } catch(err){
+        console.error(err.message);
+    }
+});
+
+
 
 
 
