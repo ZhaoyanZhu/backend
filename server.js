@@ -5,6 +5,11 @@ const pool=require("./db");
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public"));
+
+app.get("/", (req,res)=>{
+    res.render('Welcome to the server')
+})
 
 app.post("/list_items",async(req,res)=>{
     try {
@@ -71,6 +76,6 @@ app.post("/purchase",async(req,res)=>{
     }
 });
 
-app.listen(4000,()=>{
-    console.log("server has started on port 4000");
-})
+app.listen(4000 || process.env.PORT, () =>
+  console.log(`app is running on port ${process.env.PORT}`)
+);
