@@ -93,7 +93,40 @@ app.get('/display_comments',async(req,res)=>{
     }
 });
 
+app.put("/shipping_order",async(req,res)=>{
+    try{
+        const {order_id,tracking}=req.body;
+        const result=await pool.query(
+            "UPDATE order_table SET tracking=$1, order_status=$2 WHERE order_id=$3 RETURNING *",
+            [tracking,'shipped',order_id]);
+        res.json(result.rows[0]);
+        
+    } catch (err){
+        console.error(err.message);
+    }
+});
 
+
+app.put("/confirm_order",async(req,res)=>{
+    try{
+        const {order_id}=req.body;
+        const result=await pool.query("SELECT order_status FROM order_table WHERE order_id=$1",[order_id]);
+        const order_status=result.rows[0].order_status;
+        if (order_status=="paid"){
+            res.json({message:"The order hasn't shipped"});
+        }
+        else if (order_status=="shipped"){
+            const result1=await pool.query("UPDATE order_table SET order_status=$1 WHERE order_id=$2 RETURNING *",['completed',order_id]);
+            res.json(result1.rows[0]);
+        }
+        else{
+            res.json({message:"The order has been confirmed before, can't change again"});
+        }
+
+    } catch (err){
+        console.error(err.message);
+    }
+});
 
 
 
