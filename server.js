@@ -25,6 +25,10 @@ app.use(passport.session());
 
 app.use(flash());
 
+app.get("/", (req,res)=>{
+    res.json('Welcome to the server')
+})
+
 app.get('/', (req,res) => {
     res.render("index");
 });
@@ -125,10 +129,6 @@ function checkNotAuthenticated(req,res,next){
     res.redirect('/users/login');
 }
 
-
-app.get("/", (req,res)=>{
-    res.json('Welcome to the server')
-})
 
 app.get("/display_user_info", async(req,res)=>{
     try{
