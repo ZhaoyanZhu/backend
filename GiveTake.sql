@@ -1,6 +1,4 @@
-CREATE DATABASE givetake;
-
-CREATE TABLE user (
+CREATE TABLE user_table (
     user_name VARCHAR(150) NOT NULL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
@@ -10,23 +8,23 @@ CREATE TABLE user (
     credit decimal
 );
 
-CREATE TABLE item (
+CREATE TABLE item_table (
     item_id BIGSERIAL NOT NULL PRIMARY KEY,
-    user_listed VARCHAR(150) REFERENCES user(user_name),
+    user_listed VARCHAR(150) REFERENCES user_table(user_name),
     title VARCHAR(150) NOT NULL,
     photo bytea,
     price numeric(10,2) NOT NULL,
     category VARCHAR(50),
     description VARCHAR(3000),
     list_time TIMESTAMP NOT NULL,
-    item_status VARCHAR(50) NOT NULL CHECK(item_status='in stock' OR item_status='out of stock'),
+    item_status VARCHAR(50) NOT NULL CHECK(item_status='in stock' OR item_status='out of stock')
 );
 
-CREATE TABLE order (
+CREATE TABLE order_table (
     order_id BIGSERIAL NOT NULL PRIMARY KEY,
-    item_id BIGINT NOT NULL REFERENCES item(item_id),
-    seller VARCHAR(150) NOT NULL REFERENCES user(user_name),
-    buyer VARCHAR(150) NOT NULL REFERENCES user(user_name),
+    item_id BIGINT NOT NULL REFERENCES item_table(item_id),
+    seller VARCHAR(150) NOT NULL REFERENCES user_table(user_name),
+    buyer VARCHAR(150) NOT NULL REFERENCES user_table(user_name),
     shipping_from VARCHAR(10000) NOT NULL,
     shipping_to VARCHAR(10000) NOT NULL,
     order_status VARCHAR(50) NOT NULL CHECK(order_status='paid' OR order_status='shipped' OR order_status='completed'),
@@ -35,10 +33,10 @@ CREATE TABLE order (
     CHECK(seller!=buyer)
 );
 
-CREATE TABLE rating (
+CREATE TABLE rating_table (
     rating_id BIGSERIAL NOT NULL PRIMARY KEY,
-    rating_receiver VARCHAR(150) NOT NULL REFERENCES user(user_name);
-    order BIGINT NOT NULL REFERENCES order(order_id),
+    rating_receiver VARCHAR(150) NOT NULL REFERENCES user_table(user_name),
+    order_id BIGINT NOT NULL REFERENCES order_table(order_id),
     score NUMERIC(3,2) NOT NULL CHECK(score<=5),
     content VARCHAR(1000)
 );
