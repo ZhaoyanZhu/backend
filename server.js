@@ -60,6 +60,8 @@ app.get("/display_items",async(req,res)=>{
     }
 });
 
+
+
 app.post("/leave_comments",async(req,res)=>{
     try{
         const{rating_receiver,order_id,score,content}=req.body;
@@ -79,6 +81,18 @@ app.post("/leave_comments",async(req,res)=>{
         console.error(err.message);
     }
 });
+
+app.get('/display_comments',async(req,res)=>{
+    try{
+        const {user_name}=req.body;
+        const result=await pool.query("SELECT * FROM rating_table WHERE rating_receiver=$1",[user_name]);
+        res.json(result.rows);
+
+    } catch(err){
+        console.error(err.message);
+    }
+});
+
 
 
 
@@ -150,6 +164,7 @@ app.post("/purchase",async(req,res)=>{
         await pool.query('ROLLBACK');
     }
 });
+
 
 app.listen(4000 || process.env.PORT, () =>
   console.log(`app is running on port ${process.env.PORT}`)
