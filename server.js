@@ -9,6 +9,8 @@ const flash = require('express-flash');
 const passport = require("passport");
 app.use(express.urlencoded({ extended: false }));
 
+const PORT = process.env.PORT || 4000;
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
@@ -24,19 +26,19 @@ app.use(passport.session());
 app.use(flash());
 
 app.get('/', (req,res) => {
-    res.json("index");
+    res.render("index");
 });
 
 app.get('/users/register', checkAuthenticated, (req,res) => {
-    res.json("register");
+    res.render("register");
 });
 
 app.get('/users/login', checkAuthenticated, (req,res) => {
-    res.json("login");
+    res.render("login");
 });
 
 app.get('/users/dashboard', checkNotAuthenticated, (req,res) => {
-    res.json("dashboard", {user: req.user.name});
+    res.render("dashboard", {user: req.user.name});
 });
 
 app.get('/users/logout', (req,res)=>{
