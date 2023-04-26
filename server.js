@@ -26,19 +26,19 @@ app.use(passport.session());
 app.use(flash());
 
 app.get('/', (req,res) => {
-    res.render("index");
+    res.json("index");
 });
 
 app.get('/users/register', checkAuthenticated, (req,res) => {
-    res.render("register");
+    res.json("register");
 });
 
 app.get('/users/login', checkAuthenticated, (req,res) => {
-    res.render("login");
+    res.json("login");
 });
 
 app.get('/users/dashboard', checkNotAuthenticated, (req,res) => {
-    res.render("dashboard", {user: req.user.name});
+    res.json("dashboard", {user: req.user.name});
 });
 
 app.get('/users/logout', (req,res)=>{
@@ -72,8 +72,9 @@ app.post('/users/register', async (req,res)=>{
     }
 
     if (errors.length > 0){
-        res.render("register", { errors })
-    }else{
+        res.json({ err: errors })
+    }
+    else{
         let hashedPassword = await bcrypt.hash(password, 10);
         console.log(hashedPassword);
 
