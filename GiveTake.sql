@@ -1,5 +1,5 @@
 CREATE TABLE user_table (
-    user_name VARCHAR(150) NOT NULL PRIMARY KEY,
+    username VARCHAR(150) NOT NULL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE,
@@ -10,7 +10,7 @@ CREATE TABLE user_table (
 
 CREATE TABLE item_table (
     item_id BIGSERIAL NOT NULL PRIMARY KEY,
-    user_listed VARCHAR(150) REFERENCES user_table(user_name),
+    user_listed VARCHAR(150) REFERENCES user_table(username),
     title VARCHAR(150) NOT NULL,
     photo bytea,
     price numeric(10,2) NOT NULL,
@@ -23,8 +23,8 @@ CREATE TABLE item_table (
 CREATE TABLE order_table (
     order_id BIGSERIAL NOT NULL PRIMARY KEY,
     item_id BIGINT NOT NULL REFERENCES item_table(item_id),
-    seller VARCHAR(150) NOT NULL REFERENCES user_table(user_name),
-    buyer VARCHAR(150) NOT NULL REFERENCES user_table(user_name),
+    seller VARCHAR(150) NOT NULL REFERENCES user_table(username),
+    buyer VARCHAR(150) NOT NULL REFERENCES user_table(username),
     shipping_from VARCHAR(10000) NOT NULL,
     shipping_to VARCHAR(10000) NOT NULL,
     order_status VARCHAR(50) NOT NULL CHECK(order_status='paid' OR order_status='shipped' OR order_status='completed'),
@@ -35,7 +35,7 @@ CREATE TABLE order_table (
 
 CREATE TABLE rating_table (
     rating_id BIGSERIAL NOT NULL PRIMARY KEY,
-    rating_receiver VARCHAR(150) NOT NULL REFERENCES user_table(user_name),
+    rating_receiver VARCHAR(150) NOT NULL REFERENCES user_table(username),
     order_id BIGINT NOT NULL REFERENCES order_table(order_id),
     score NUMERIC(3,2) NOT NULL CHECK(score<=5),
     content VARCHAR(1000)

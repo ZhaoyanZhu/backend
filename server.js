@@ -1,5 +1,4 @@
 const express=require("express");
-const app=express();
 const cors=require("cors");
 const pool=require("./db");
 
@@ -7,9 +6,11 @@ const bcrypt = require("bcrypt");
 const session = require('express-session');
 const flash = require('express-flash');
 const passport = require("passport");
-app.use(express.urlencoded({ extended: false }));
 
 const PORT = process.env.PORT || 4000;
+const app=express();
+
+app.use(express.urlencoded({ extended: false }));
 
 app.use(cors());
 app.use(express.json());
@@ -25,33 +26,34 @@ app.use(passport.session());
 
 app.use(flash());
 
-app.get('/', (req,res) => {
-    res.json("index");
-});
+app.get("/", (req,res)=>{
+    res.json('Welcome to the server')
+})
 
-app.get('/users/register', checkAuthenticated, (req,res) => {
+app.get('/register', checkAuthenticated, (req,res) => {
     res.json("register");
 });
 
-app.get('/users/login', checkAuthenticated, (req,res) => {
+app.get('/login', checkAuthenticated, (req,res) => {
     res.json("login");
 });
 
-app.get('/users/dashboard', checkNotAuthenticated, (req,res) => {
+app.get('/dashboard', checkNotAuthenticated, (req,res) => {
     res.json("dashboard", {user: req.user.name});
 });
 
-app.get('/users/logout', (req,res)=>{
+app.get('/logout', (req,res)=>{
     req.logOut();
     reg.flash('success_msg', "You have logged out");
     res.redirect('/users/login');
 });
 
-app.post('/users/register', async (req,res)=>{
+app.post('/register', async (req,res)=>{
     let { name, email, password, password2 } = req.body;
+    const credit = 1000;
 
     console.log({
-        name,
+        username,
         email,
         password,
         password2
@@ -74,30 +76,30 @@ app.post('/users/register', async (req,res)=>{
     if (errors.length > 0){
         res.json({ err: errors })
     }
+    
     else{
         let hashedPassword = await bcrypt.hash(password, 10);
         console.log(hashedPassword);
 
         pool.query(
-            `select * FORM users
+            `select * FORM user_table
             WHERE email = $1`, [email], (err, results) => {
                 if (err) {
                     throw err;
                 }
                 if (results.row.length > 0) {
                     error.push({message: "Email already registered"});
-                    res.render("register", { errors });
+                    res.json({ err: errors });
                 } else{
                     pool.query(
-                        `INSERT INTO users (name, email, password)
+                        `INSERT INTO user_table (username, email, password, credit)
                         VALUES ($1, $2, $3)
-                        RETURNING id, password`, [name, email, hashedPassword], (err, results)=>{
+                        RETURNING id, password`, [name, email, hashedPassword, credit], (err, results)=>{
                             if (err){
                                 throw err
                             }
                             console.log(results.rows);
-                            reg.flash("success_msg", "You are now registered. Please log in");
-                            reg.redirect('/users/login');
+                            res.json({name: name, email: email});
                         }
                     )
                 }
@@ -125,11 +127,6 @@ function checkNotAuthenticated(req,res,next){
     }
     res.redirect('/users/login');
 }
-
-
-app.get("/", (req,res)=>{
-    res.json('Welcome to the server')
-})
 
 app.get("/display_user_info", async(req,res)=>{
     try{
@@ -179,8 +176,6 @@ app.get("/display_items",async(req,res)=>{
         console.error(err.message);
     }
 });
-
-
 
 app.post("/leave_comments",async(req,res)=>{
     try{
