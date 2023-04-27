@@ -1,7 +1,7 @@
 CREATE TABLE user_table (
     user_name VARCHAR(150) NOT NULL PRIMARY KEY,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
     email VARCHAR(150) UNIQUE,
     phone VARCHAR(100) UNIQUE,
     password VARCHAR(100),
@@ -15,6 +15,7 @@ CREATE TABLE item_table (
     photo bytea,
     price numeric(10,2) NOT NULL,
     category VARCHAR(50),
+    condition VARCHAR(50) NOT NULL CHECK(condition="almost new" OR condition="half new" OR condition="old"),
     description VARCHAR(3000),
     list_time TIMESTAMP NOT NULL,
     item_status VARCHAR(50) NOT NULL CHECK(item_status='in stock' OR item_status='out of stock')
@@ -40,3 +41,10 @@ CREATE TABLE rating_table (
     score NUMERIC(3,2) NOT NULL CHECK(score<=5),
     content VARCHAR(1000)
 );
+
+CREATE TABLE donate_table{
+    donate_id BIGSERIAL NOT NULL PRIMARY KEY,
+    item_id BIGSERIAL NOT NULL REFERENCES item_table(item_id),
+    donator VARCHAR(150) NOT NULL REFERENCES user_table(user_name)
+    
+}
