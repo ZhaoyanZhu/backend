@@ -14,8 +14,9 @@ CREATE TABLE item_table (
     title VARCHAR(150) NOT NULL,
     photo bytea,
     price numeric(10,2) NOT NULL,
+    size VARCHAR(50),
     category VARCHAR(50),
-    condition VARCHAR(50) NOT NULL CHECK(condition="almost new" OR condition="half new" OR condition="old"),
+    condition VARCHAR(50) NOT NULL CHECK(condition='almost new'OR condition='half new' OR condition='old'),
     description VARCHAR(3000),
     list_time TIMESTAMP NOT NULL,
     item_status VARCHAR(50) NOT NULL CHECK(item_status='in stock' OR item_status='out of stock')
@@ -42,9 +43,3 @@ CREATE TABLE rating_table (
     content VARCHAR(1000)
 );
 
-CREATE TABLE donate_table{
-    donate_id BIGSERIAL NOT NULL PRIMARY KEY,
-    item_id BIGSERIAL NOT NULL REFERENCES item_table(item_id),
-    donator VARCHAR(150) NOT NULL REFERENCES user_table(user_name)
-    
-}
