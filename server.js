@@ -11,9 +11,15 @@ const PORT = process.env.PORT || 4000;
 const app=express();
 
 app.use(express.urlencoded({ extended: false }));
-
-app.use(cors());
 app.use(express.json());
+
+app.use(
+    cors({
+      origin: 'http://localhost:3000', // Replace with your client's origin
+      credentials: true,
+    }),
+);
+
 app.use(express.static("public"));
 
 app.use(session({
@@ -39,29 +45,29 @@ app.get('/login', checkAuthenticated, (req,res) => {
 });
 
 app.get('/dashboard', checkNotAuthenticated, (req,res) => {
-    res.json("dashboard", {user: req.user.name});
+    res.json({user: req.user.name});
 });
 
 app.get('/logout', (req,res)=>{
-    req.logOut();
-    reg.flash('success_msg', "You have logged out");
-    res.redirect('/users/login');
+    // req.logOut();
+    // req.flash('success_msg', "You have logged out");
+    // res.redirect('/users/login');
 });
 
 app.post('/register', async (req,res)=>{
-    let { name, email, password, password2 } = req.body;
+    let { username, email, password, password2 } = req.body;
     const credit = 1000;
 
-    console.log({
-        username,
-        email,
-        password,
-        password2
-    });
+    // console.log({
+    //     username,
+    //     email,
+    //     password,
+    //     password2
+    // });
 
     let errors = [];
 
-    if(!name || !email || !password || !password2){
+    if(!username || !email || !password || !password2){
         errors.push({message: "Please enter all fields"});
     }
 
@@ -82,7 +88,7 @@ app.post('/register', async (req,res)=>{
         console.log(hashedPassword);
 
         pool.query(
-            `select * FORM user_table
+            `select * FROM user_table
             WHERE email = $1`, [email], (err, results) => {
                 if (err) {
                     throw err;
@@ -94,12 +100,12 @@ app.post('/register', async (req,res)=>{
                     pool.query(
                         `INSERT INTO user_table (username, email, password, credit)
                         VALUES ($1, $2, $3)
-                        RETURNING id, password`, [name, email, hashedPassword, credit], (err, results)=>{
+                        RETURNING id, password`, [username, email, hashedPassword, credit], (err, results)=>{
                             if (err){
                                 throw err
                             }
                             console.log(results.rows);
-                            res.json({name: name, email: email});
+                            res.json({username: username, email: email});
                         }
                     )
                 }

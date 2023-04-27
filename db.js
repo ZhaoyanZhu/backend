@@ -2,7 +2,7 @@ const Pool=require("pg").Pool;
 
 const pool=new Pool({
     server:"localhost",
-    database:"givetake",
+    database:"postgres",
     port:8888,
     password:"Aa!352934240",
     user:"postgres",
