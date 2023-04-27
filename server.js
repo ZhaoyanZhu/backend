@@ -85,7 +85,7 @@ app.post('/register', async (req,res)=>{
     
     else{
         let hashedPassword = await bcrypt.hash(password, 10);
-        console.log(hashedPassword);
+        // console.log(hashedPassword);
 
         pool.query(
             `select * FROM user_table
@@ -93,14 +93,14 @@ app.post('/register', async (req,res)=>{
                 if (err) {
                     throw err;
                 }
-                if (results.row.length > 0) {
-                    error.push({message: "Email already registered"});
+                if (results.rows.length > 0) {
+                    errors.push({message: "Email already registered"});
                     res.json({ err: errors });
                 } else{
                     pool.query(
                         `INSERT INTO user_table (username, email, password, credit)
-                        VALUES ($1, $2, $3)
-                        RETURNING id, password`, [username, email, hashedPassword, credit], (err, results)=>{
+                        VALUES ($1, $2, $3, $4)`, 
+                        [username, email, hashedPassword, credit], (err, results)=>{
                             if (err){
                                 throw err
                             }
@@ -120,19 +120,6 @@ app.post("/users/login", passport.authenticate('local',{
     failureFlash: true
 }))
 
-function checkAuthenticated(req,res,next){
-    if (req.isAuthenticated()) {
-        return res.redirect("/users/dashboard");
-    }
-    next();
-}
-
-function checkNotAuthenticated(req,res,next){
-    if(req.isAuthenticated()){
-        return next();
-    }
-    res.redirect('/users/login');
-}
 
 app.get("/display_user_info", async(req,res)=>{
     try{
@@ -323,3 +310,17 @@ app.post("/purchase",async(req,res)=>{
 app.listen(4000 || process.env.PORT, () =>
   console.log(`app is running on port ${process.env.PORT}`)
 );
+
+function checkAuthenticated(req,res,next){
+    if (req.isAuthenticated()) {
+        return res.redirect("/users/dashboard");
+    }
+    next();
+}
+
+function checkNotAuthenticated(req,res,next){
+    if(req.isAuthenticated()){
+        return next();
+    }
+    res.redirect('/users/login');
+}
