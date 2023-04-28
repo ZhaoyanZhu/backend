@@ -149,10 +149,10 @@ app.post("/login", async (req, res) => {
 
 app.get("/display_user_info", async (req, res) => {
   try {
-    const { user_name } = req.body;
+    const { username } = req.body;
     const result = await pool.query(
-      "SELECT user_name,first_name,last_name,email,phone,credit FROM user_table WHERE user_name=$1",
-      [user_name]
+      "SELECT username,first_name,last_name,email,phone,credit FROM user_table WHERE username=$1",
+      [username]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -175,10 +175,10 @@ app.get("/display_purchase_history", async (req, res) => {
 
 app.get("/display_selling_history", async (req, res) => {
   try {
-    const { user_name } = req.body;
+    const { username } = req.body;
     const sell_history = await pool.query(
       "SELECT * FROM order_table WHERE seller=$1",
-      [user_name]
+      [username]
     );
     res.json(sell_history.rows);
   } catch (err) {
@@ -232,10 +232,10 @@ app.post("/leave_comments", async (req, res) => {
 
 app.get("/display_comments", async (req, res) => {
   try {
-    const { user_name } = req.body;
+    const { username } = req.body;
     const result = await pool.query(
       "SELECT * FROM rating_table WHERE rating_receiver=$1",
-      [user_name]
+      [username]
     );
     res.json(result.rows);
   } catch (err) {
