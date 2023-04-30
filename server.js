@@ -284,10 +284,31 @@ app.put("/confirm_order", async (req, res) => {
 
 app.post("/list_items", async (req, res) => {
   try {
-    const { user, title, photo, price, category, description } = req.body;
+    const {
+      user,
+      title,
+      photo,
+      price,
+      gender,
+      category,
+      size,
+      condition,
+      description,
+    } = req.body;
     const listing = await pool.query(
-      "INSERT INTO item_table (user_listed, title, photo, price, category, description, list_time, item_status) VALUES($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP(),$7) RETURNING *",
-      [user, title, photo, price, category, description, "in stock"]
+      "INSERT INTO item_table (user_listed, title, photo, price, gender,category,size,condition,description, list_time, item_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_TIMESTAMP(),$10)",
+      [
+        user,
+        title,
+        photo,
+        price,
+        gender,
+        category,
+        size,
+        condition,
+        description,
+        "in stock",
+      ]
     );
 
     res.json(listing.rows[0]);
