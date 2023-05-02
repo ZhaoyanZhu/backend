@@ -49,15 +49,15 @@ app.get("/login", checkAuthenticated, (req, res) => {
   res.json("login");
 });
 
-app.get("/dashboard", checkNotAuthenticated, (req, res) => {
-  res.json({ user: req.user.name });
-});
+// app.get("/dashboard", checkNotAuthenticated, (req, res) => {
+//   res.json({ user: req.user.name });
+// });
 
-app.get("/logout", (req, res) => {
-  // req.logOut();
-  // req.flash('success_msg', "You have logged out");
-  // res.redirect('/users/login');
-});
+// app.get("/logout", (req, res) => {
+//   // req.logOut();
+//   // req.flash('success_msg', "You have logged out");
+//   // res.redirect('/users/login');
+// });
 
 app.post("/register", async (req, res) => {
   let { username, email, password, password2 } = req.body;
@@ -145,18 +145,18 @@ app.post("/login", async (req, res) => {
   });
 });
 
-app.get("/display_user_info", async (req, res) => {
-  try {
-    const { username } = req.body;
-    const result = await pool.query(
-      "SELECT username,first_name,last_name,email,phone,credit FROM user_table WHERE username=$1",
-      [username]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err.message);
-  }
-});
+// app.get("/display_user_info", async (req, res) => {
+//   try {
+//     const { username } = req.body;
+//     const result = await pool.query(
+//       "SELECT username,first_name,last_name,email,phone,credit FROM user_table WHERE username=$1",
+//       [username]
+//     );
+//     res.json(result.rows[0]);
+//   } catch (err) {
+//     console.error(err.message);
+//   }
+// });
 
 app.get("/display_purchase_history", async (req, res) => {
   try {
@@ -240,6 +240,21 @@ app.post("/leave_comments", async (req, res) => {
   }
 });
 
+app.post("/get_addr", async (req, res) => {
+  const { user } = req.body;
+  const result = await pool.query(
+    "SELECT* \
+  FROM address_table\
+  WHERE user_email=$1",
+    [user]
+  );
+  if (result.rows.length === 0) {
+    res.json("");
+    return;
+  }
+  res.json(result.rows[0]);
+});
+
 app.get("/display_comments", async (req, res) => {
   try {
     const { username } = req.body;
@@ -292,7 +307,7 @@ app.put("/confirm_order", async (req, res) => {
   }
 });
 
-app.post("/list_items", async (req, res) => {
+app.put("/list_items", (req, res) => {
   const {
     user,
     title,
@@ -316,8 +331,7 @@ app.post("/list_items", async (req, res) => {
     res.json({ err: "condition is required" });
     return;
   }
-
-  const listing = await pool.query(
+  pool.query(
     "INSERT INTO item_table (user_listed, title, photo, price, gender, category, size, condition, description, list_time, item_status)\
        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,$10)\
        RETURNING *",
@@ -334,7 +348,64 @@ app.post("/list_items", async (req, res) => {
       "in stock",
     ]
   );
-  res.json(listing.rows[0]);
+});
+
+app.put("/add_addr", async (req, res) => {
+  const { user, addr1, addr2, city, state, zip } = req.body;
+  if (!user) {
+    res.json({ err: "please login first" });
+    return;
+  }
+  if (!addr1) {
+    res.json({ err: "address is required" });
+    return;
+  }
+  if (!city) {
+    res.json({ err: "city is required" });
+    return;
+  }
+  if (!state) {
+    res.json({ err: "state is required" });
+    return;
+  }
+  if (!zip) {
+    res.json({ err: "zip is required" });
+    return;
+  }
+  const result = await pool.query(
+    "INSERT INTO address_table (user_email, address1, address2, city, state, zip_code) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",
+    [user, addr1, addr2, city, state, zip]
+  );
+  res.json(result);
+});
+
+app.put("/edit_addr", async (req, res) => {
+  const { user, addr1, addr2, city, state, zip } = req.body;
+  if (!user) {
+    res.json({ err: "please login first" });
+    return;
+  }
+  if (!addr1) {
+    res.json({ err: "address is required" });
+    return;
+  }
+  if (!city) {
+    res.json({ err: "city is required" });
+    return;
+  }
+  if (!state) {
+    res.json({ err: "state is required" });
+    return;
+  }
+  if (!zip) {
+    res.json({ err: "zip is required" });
+    return;
+  }
+  const result = await pool.query(
+    "UPDATE address_table SET address1=$2, address2=$3, city=$4, state=$5, zip_code=$6 WHERE user_email=$1 RETURNING *",
+    [user, addr1, addr2, city, state, zip]
+  );
+  res.json(result);
 });
 
 app.post("/purchase", async (req, res) => {
