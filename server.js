@@ -93,7 +93,8 @@ app.post("/register", async (req, res) => {
         } else {
           pool.query(
             `INSERT INTO user_table (username, email, password, credit)
-                            VALUES ($1, $2, $3, $4)`,
+                            VALUES ($1, $2, $3, $4)
+                            RETURNING *`,
             [username, email, hashedPassword, credit],
             (err, results) => {
               if (err) {
@@ -103,6 +104,7 @@ app.post("/register", async (req, res) => {
                 username: username,
                 email: email,
                 credit: credit,
+                charity: results.charity,
               });
             }
           );
@@ -142,6 +144,7 @@ app.post("/login", async (req, res) => {
     username: user.username,
     email: user.email,
     credit: user.credit,
+    charity: user.charity,
   });
 });
 
@@ -408,6 +411,8 @@ app.put("/edit_addr", async (req, res) => {
   res.json(result);
 });
 
+app.post("/donation");
+
 app.post("/purchase", async (req, res) => {
   try {
     const { item_id, seller, buyer, shipping_from, shipping_to } = req.body;
@@ -420,7 +425,7 @@ app.post("/purchase", async (req, res) => {
       );
       const price = result.rows[0].price;
       const result1 = await pool.query(
-        "SELECT * FROM user_table WHERE user_name=$1",
+        "SELECT * FROM user_table WHERE username=$1",
         [buyer]
       );
       const BuyerBalance = result1.rows[0].credit;
@@ -428,7 +433,7 @@ app.post("/purchase", async (req, res) => {
         res.json({ message: "Not enough credits to make this transcation" });
       } else {
         const purchase = await pool.query(
-          "INSERT INTO order_table (item_id,seller,buyer,shipping_from,shipping_to,order_status,order_date) VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP()) RETURNING *",
+          "INSERT INTO order_table (item_id,seller,buyer,shipping_from,shipping_to,order_status,order_date) VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP) RETURNING *",
           [item_id, seller, buyer, shipping_from, shipping_to, "paid"]
         );
         await pool.query(
@@ -437,16 +442,16 @@ app.post("/purchase", async (req, res) => {
         );
         const NewBuyerBalance = BuyerBalance - price;
         const result3 = await pool.query(
-          "SELECT * FROM user_table WHERE user_name=$1",
+          "SELECT * FROM user_table WHERE username=$1",
           [seller]
         );
         const SellerBalance = result3.rows[0].credit;
         const NewSellerBalance = SellerBalance + price;
-        await pool.query("Update user_table SET credit=$1 WHERE user_name=$2", [
+        await pool.query("Update user_table SET credit=$1 WHERE username=$2", [
           NewBuyerBalance,
           buyer,
         ]);
-        await pool.query("Update user_table SET credit=$1 WHERE user_name=$2", [
+        await pool.query("Update user_table SET credit=$1 WHERE username=$2", [
           NewSellerBalance,
           seller,
         ]);
@@ -457,34 +462,72 @@ app.post("/purchase", async (req, res) => {
     }
   } catch (err) {
     console.error(err.message);
-    await pool.query("ROLLBACK");
   }
 });
-
-app.post("/item_details", async (req, res) => {
+// add items to the shopping cart
+app.post("/cart", async (req, res) => {
   try {
-    const { item_id } = req.body;
+    const { user, item_id } = req.body;
     const result = await pool.query(
-      "SELECT * FROM item_table WHERE item_id=$1",
-      [item_id]
+      "INSERT INTO user_table (user_name,item_id,) VALUES ($1,$2) RETURNING *"
     );
-    res.json(result.rows[0]);
-    // console.log(result.rows[0]);
+    res.json(result.rows);
   } catch (err) {
     console.error(err.message);
   }
 });
 
-// add items to the shopping cart
-app.post("/cart", async (req, res) => {
-  const { user_email, item_id } = req.body;
-  console.log(req.body);
-  if (!user_email) {
-    res.status(400).json({ message: "Please login first" });
-    return;
-  }
-
+app.post("/donation", async (req, res) => {
   try {
+    const { donator, gender, category, condition } = req.body;
+    earnedCredit = 0;
+    if (gender == "men") {
+      earnedCredit += 100;
+    }
+    if (gender == "women") {
+      earnedCredit += 100;
+    }
+    if (gender == "kids") {
+      earnedCredit += 50;
+    }
+    if (category == "clothing") {
+      earnedCredit += 100;
+    }
+    if (category == "shoes") {
+      earnedCredit += 50;
+    }
+    if (condition == "half new") {
+      earnedCredit -= 25;
+    }
+    if (condition == "old") {
+      earnedCredit -= 50;
+    }
+    const donation = await pool.query(
+      "INSERT INTO donation_table(donator,gender,category,condition) VALUES ($1,$2,$3,$4) RETURNING *",
+      [donator, gender, category, condition]
+    );
+    const result = await pool.query(
+      "SELECT * FROM user_table WHERE username=$1",
+      [donator]
+    );
+    const balance = result.rows[0].credit;
+    const newBalance = balance + earnedCredit;
+    await pool.query("UPDATE user_table SET credit=$1 WHERE username=$2", [
+      newBalance,
+      donator,
+    ]);
+    await pool.query("COMMIT");
+
+    res.json(donation.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    await pool.query("ROLLBACK");
+  }
+});
+
+app.get("/display_donations", async (req, res) => {
+  try {
+    const { username } = req.body;
     const result = await pool.query(
       "INSERT INTO shopping_cart (user_email,item_id) VALUES ($1,$2) RETURNING *",
       [user_email, item_id]
