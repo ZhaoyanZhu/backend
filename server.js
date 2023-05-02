@@ -186,19 +186,31 @@ app.get("/display_selling_history", async (req, res) => {
 
 app.post("/display_items", async (req, res) => {
   try {
-    const { category } = req.body;
-    if (!category) {
+    const { category, gender } = req.body;
+    if (!category && !gender) {
       const search_all = await pool.query(
         "SELECT * FROM item_table WHERE item_status=$1",
         ["in stock"]
       );
       res.json(search_all.rows);
-    } else {
+    } else if (!gender) {
       const search_category = await pool.query(
-        "SELECT * FROM item_table WEHERE item_status=$1 AND category=$2",
+        "SELECT * FROM item_table WHERE item_status=$1 AND category=$2",
         ["in stock", category]
       );
       res.json(search_category.rows);
+    } else if (!category) {
+      const search_gender = await pool.query(
+        "SELECT * FROM item_table WHERE item_status=$1 AND gender=$2",
+        ["in stock", gender]
+      );
+      res.json(search_gender.rows);
+    } else {
+      const search_category_gender = await pool.query(
+        "SELECT * FROM item_table WHERE item_status=$1 AND category=$2 AND gender=$3",
+        ["in stock", category, gender]
+      );
+      res.json(search_category_gender.rows);
     }
   } catch (err) {
     console.error(err.message);
@@ -292,7 +304,6 @@ app.post("/list_items", async (req, res) => {
     condition,
     description,
   } = req.body;
-  console.log(photo);
   if (!price) {
     res.json({ err: "price is required" });
     return;
