@@ -469,7 +469,7 @@ app.post("/item_details", async (req, res) => {
       [item_id]
     );
     res.json(result.rows[0]);
-    console.log(result.rows[0]);
+    // console.log(result.rows[0]);
   } catch (err) {
     console.error(err.message);
   }
@@ -477,17 +477,26 @@ app.post("/item_details", async (req, res) => {
 
 // add items to the shopping cart
 app.post("/cart", async (req, res) => {
+  const { user_email, item_id } = req.body;
+  console.log(req.body);
+  if (!user_email) {
+    res.status(400).json({ message: "Please login first" });
+    return;
+  }
+
   try {
-    const { user,item_id } = req.body;
     const result = await pool.query(
-      "INSERT INTO user_table (user_name,item_id,) VALUES ($1,$2) RETURNING *",
+      "INSERT INTO shopping_cart (user_email,item_id) VALUES ($1,$2) RETURNING *",
+      [user_email, item_id]
     );
-    res.json(result.rows);
+    res
+      .status(200)
+      .json({ message: "Item added to cart", data: result.rows[0] });
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
+    res.status(500).json({ message: "Error adding item to cart", error: err });
   }
 });
-
 
 app.listen(4000 || process.env.PORT, () =>
   console.log(`app is running on port ${process.env.PORT}`)
