@@ -189,7 +189,15 @@ app.get("/display_selling_history", async (req, res) => {
 
 app.post("/display_items", async (req, res) => {
   try {
-    const { category, gender } = req.body;
+    const { category, gender, user } = req.body;
+    if (user) {
+      const search_user = await pool.query(
+        "SELECT * FROM item_table WHERE item_status=$1 AND user_listed=$2",
+        ["in stock", user]
+      );
+      res.json(search_user.rows);
+      return;
+    }
     if (!category && !gender) {
       const search_all = await pool.query(
         "SELECT * FROM item_table WHERE item_status=$1",
@@ -256,6 +264,15 @@ app.post("/get_addr", async (req, res) => {
     return;
   }
   res.json(result.rows[0]);
+});
+
+app.get("/display_donations", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM donation_table");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+  }
 });
 
 app.get("/display_comments", async (req, res) => {
@@ -351,6 +368,7 @@ app.put("/list_items", (req, res) => {
       "in stock",
     ]
   );
+  res.json({});
 });
 
 app.put("/add_addr", async (req, res) => {
@@ -411,7 +429,56 @@ app.put("/edit_addr", async (req, res) => {
   res.json(result);
 });
 
-app.post("/donation");
+app.put("/new_donation", (req, res) => {
+  const { user, title, description } = req.body;
+  if (!user) {
+    res.json({ err: "please login first" });
+    return;
+  }
+  if (!title) {
+    res.json({ err: "title is required" });
+    return;
+  }
+  if (!description) {
+    res.json({ err: "description is required" });
+    return;
+  }
+  pool.query(
+    "INSERT INTO donation_table (user_email, name, description, start_time)\
+        VALUES($1,$2,$3,CURRENT_TIMESTAMP)",
+    [user, title, description]
+  );
+  res.json({});
+});
+
+// app.post("/donation");
+
+app.post("/item_details", async (req, res) => {
+  try {
+    const { item_id } = req.body;
+    const result = await pool.query(
+      "SELECT * FROM item_table WHERE item_id=$1",
+      [item_id]
+    );
+    res.json(result.rows[0]);
+    // console.log(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
+
+app.post("/donation_details", async (req, res) => {
+  try {
+    const { donation_id } = req.body;
+    const result = await pool.query(
+      "SELECT * FROM donation_table WHERE donation_id=$1",
+      [donation_id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
 
 app.post("/purchase", async (req, res) => {
   try {
@@ -477,48 +544,79 @@ app.post("/cart", async (req, res) => {
   }
 });
 
-app.post("/donation", async (req, res) => {
+app.post("/donate_item", async (req, res) => {
   try {
-    const { donator, gender, category, condition } = req.body;
-    earnedCredit = 0;
-    if (gender == "men") {
-      earnedCredit += 100;
-    }
-    if (gender == "women") {
-      earnedCredit += 100;
-    }
-    if (gender == "kids") {
-      earnedCredit += 50;
-    }
-    if (category == "clothing") {
-      earnedCredit += 100;
-    }
-    if (category == "shoes") {
-      earnedCredit += 50;
-    }
-    if (condition == "half new") {
-      earnedCredit -= 25;
-    }
-    if (condition == "old") {
-      earnedCredit -= 50;
-    }
-    const donation = await pool.query(
-      "INSERT INTO donation_table(donator,gender,category,condition) VALUES ($1,$2,$3,$4) RETURNING *",
-      [donator, gender, category, condition]
-    );
+    const { donation_id, item_id } = req.body;
     const result = await pool.query(
-      "SELECT * FROM user_table WHERE username=$1",
-      [donator]
+      "SELECT * FROM item_table WHERE item_id=$1",
+      [item_id]
     );
-    const balance = result.rows[0].credit;
-    const newBalance = balance + earnedCredit;
-    await pool.query("UPDATE user_table SET credit=$1 WHERE username=$2", [
-      newBalance,
-      donator,
-    ]);
-    await pool.query("COMMIT");
+    const item = result.rows[0];
 
-    res.json(donation.rows[0]);
+    let earnedCredit = 0;
+    if (item.gender == "Men") {
+      earnedCredit += 700;
+    }
+    if (item.gender == "Women") {
+      earnedCredit += 700;
+    }
+    if (item.gender == "Kids") {
+      earnedCredit += 500;
+    }
+    if (item.category == "Clothing") {
+      earnedCredit += 100;
+    }
+    if (item.category == "Shoes") {
+      earnedCredit += 50;
+    }
+    if (item.condition == "Like New") {
+      earnedCredit -= 75;
+    }
+    if (item.condition == "Good") {
+      earnedCredit -= 125;
+    }
+    if (item.condition == "Fair") {
+      earnedCredit -= 175;
+    }
+    if (item.condition == "Poor") {
+      earnedCredit -= 300;
+    }
+
+    pool.query(
+      "INSERT INTO donate_event_table (donation_id, item_id, donation_time, credit)\
+        VALUES($1,$2,CURRENT_TIMESTAMP,$3)",
+      [donation_id, item_id, earnedCredit],
+      (err, result) => {
+        if (err) {
+          console.log(err);
+          res.json({ err: err });
+        } else {
+          pool.query(
+            "UPDATE item_table SET item_status=$1 WHERE item_id=$2",
+            ["out of stock", item_id],
+            (err, result) => {
+              if (err) {
+                console.log(err);
+                res.json({ err: err });
+              } else {
+                pool.query(
+                  "UPDATE user_table SET credit = credit + $1 WHERE email = $2 RETURNING *",
+                  [earnedCredit, item.user_listed],
+                  (err, result) => {
+                    if (err) {
+                      console.log(err);
+                      res.json({ err: err });
+                    } else {
+                      res.json(result.rows[0]);
+                    }
+                  }
+                );
+              }
+            }
+          );
+        }
+      }
+    );
   } catch (err) {
     console.error(err.message);
     await pool.query("ROLLBACK");
