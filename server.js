@@ -382,57 +382,94 @@ app.put("/add_addr", async (req, res) => {
   res.json(result);
 });
 
-app.post("/donation")
+app.put("/edit_addr", async (req, res) => {
+  const { user, addr1, addr2, city, state, zip } = req.body;
+  if (!user) {
+    res.json({ err: "please login first" });
+    return;
+  }
+  if (!addr1) {
+    res.json({ err: "address is required" });
+    return;
+  }
+  if (!city) {
+    res.json({ err: "city is required" });
+    return;
+  }
+  if (!state) {
+    res.json({ err: "state is required" });
+    return;
+  }
+  if (!zip) {
+    res.json({ err: "zip is required" });
+    return;
+  }
+  const result = await pool.query(
+    "UPDATE address_table SET address1=$2, address2=$3, city=$4, state=$5, zip_code=$6 WHERE user_email=$1 RETURNING *",
+    [user, addr1, addr2, city, state, zip]
+  );
+  res.json(result);
+});
 
+app.post("/donation");
 
-app.post("/purchase",async(req,res)=>{
-    try {
-        const {
-            item_id,
-            seller,
-            buyer,
-            shipping_from,
-            shipping_to,
-        }=req.body;
-        if(seller==buyer){
-            res.json({message:"You cannot order your listed items"});
-        }
-        else{   
-            const result=await pool.query("SELECT * FROM item_table WHERE item_id=$1",[item_id]);
-            const price=result.rows[0].price;
-            const result1=await pool.query("SELECT * FROM user_table WHERE username=$1",[buyer]);
-            const BuyerBalance=result1.rows[0].credit;
-            if(price>BuyerBalance){
-                res.json({message:"Not enough credits to make this transcation"});
-            }
-            else{
-                const purchase=await pool.query(
-                    "INSERT INTO order_table (item_id,seller,buyer,shipping_from,shipping_to,order_status,order_date) VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP) RETURNING *",
-                    [item_id,seller,buyer,shipping_from,shipping_to,'paid']
-                );
-                await pool.query("UPDATE item_table SET item_status=$1 WHERE item_id=$2",['out of stock',item_id]);
-                const NewBuyerBalance=BuyerBalance-price;
-                const result3=await pool.query("SELECT * FROM user_table WHERE username=$1",[seller]);
-                const SellerBalance=result3.rows[0].credit;
-                const NewSellerBalance=SellerBalance+price;
-                await pool.query("Update user_table SET credit=$1 WHERE username=$2",[NewBuyerBalance,buyer]);
-                await pool.query("Update user_table SET credit=$1 WHERE username=$2",[NewSellerBalance,seller]);
-                await pool.query("COMMIT");
-                
-                res.json(purchase.rows[0]);
+app.post("/purchase", async (req, res) => {
+  try {
+    const { item_id, seller, buyer, shipping_from, shipping_to } = req.body;
+    if (seller == buyer) {
+      res.json({ message: "You cannot order your listed items" });
+    } else {
+      const result = await pool.query(
+        "SELECT * FROM item_table WHERE item_id=$1",
+        [item_id]
+      );
+      const price = result.rows[0].price;
+      const result1 = await pool.query(
+        "SELECT * FROM user_table WHERE username=$1",
+        [buyer]
+      );
+      const BuyerBalance = result1.rows[0].credit;
+      if (price > BuyerBalance) {
+        res.json({ message: "Not enough credits to make this transcation" });
+      } else {
+        const purchase = await pool.query(
+          "INSERT INTO order_table (item_id,seller,buyer,shipping_from,shipping_to,order_status,order_date) VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP) RETURNING *",
+          [item_id, seller, buyer, shipping_from, shipping_to, "paid"]
+        );
+        await pool.query(
+          "UPDATE item_table SET item_status=$1 WHERE item_id=$2",
+          ["out of stock", item_id]
+        );
+        const NewBuyerBalance = BuyerBalance - price;
+        const result3 = await pool.query(
+          "SELECT * FROM user_table WHERE username=$1",
+          [seller]
+        );
+        const SellerBalance = result3.rows[0].credit;
+        const NewSellerBalance = SellerBalance + price;
+        await pool.query("Update user_table SET credit=$1 WHERE username=$2", [
+          NewBuyerBalance,
+          buyer,
+        ]);
+        await pool.query("Update user_table SET credit=$1 WHERE username=$2", [
+          NewSellerBalance,
+          seller,
+        ]);
+        await pool.query("COMMIT");
 
-            }  
-        }
-    } catch (err){
-      console.error(err.message);
+        res.json(purchase.rows[0]);
       }
+    }
+  } catch (err) {
+    console.error(err.message);
+  }
 });
 // add items to the shopping cart
 app.post("/cart", async (req, res) => {
   try {
-    const { user,item_id } = req.body;
+    const { user, item_id } = req.body;
     const result = await pool.query(
-      "INSERT INTO user_table (user_name,item_id,) VALUES ($1,$2) RETURNING *",
+      "INSERT INTO user_table (user_name,item_id,) VALUES ($1,$2) RETURNING *"
     );
     res.json(result.rows);
   } catch (err) {
@@ -440,62 +477,66 @@ app.post("/cart", async (req, res) => {
   }
 });
 
-app.post("/donation",async(req,res)=>{
-  try{
-      const {donator,gender,category,condition}=req.body;
-      earnedCredit=0;  
-      if (gender=="men"){
-          earnedCredit+=100;
-      }   
-      if (gender=="women"){
-          earnedCredit+=100;
-      }
-      if (gender=="kids"){
-          earnedCredit+=50;
-      }
-      if (category=="clothing"){
-          earnedCredit+=100;
-      }
-      if (category=="shoes"){
-          earnedCredit+=50;
-      }
-      if (condition=="half new"){
-          earnedCredit-=25;
-      }
-      if (condition=="old"){
-          earnedCredit-=50;
-      }
-      const donation=await pool.query(
-          "INSERT INTO donation_table(donator,gender,category,condition) VALUES ($1,$2,$3,$4) RETURNING *",
-          [donator,gender,category,condition]
-      );
-      const result=await pool.query("SELECT * FROM user_table WHERE username=$1",[donator]);
-      const balance=result.rows[0].credit;
-      const newBalance=balance+earnedCredit;
-      await pool.query("UPDATE user_table SET credit=$1 WHERE username=$2",[newBalance,donator]);
-      await pool.query("COMMIT");
+app.post("/donation", async (req, res) => {
+  try {
+    const { donator, gender, category, condition } = req.body;
+    earnedCredit = 0;
+    if (gender == "men") {
+      earnedCredit += 100;
+    }
+    if (gender == "women") {
+      earnedCredit += 100;
+    }
+    if (gender == "kids") {
+      earnedCredit += 50;
+    }
+    if (category == "clothing") {
+      earnedCredit += 100;
+    }
+    if (category == "shoes") {
+      earnedCredit += 50;
+    }
+    if (condition == "half new") {
+      earnedCredit -= 25;
+    }
+    if (condition == "old") {
+      earnedCredit -= 50;
+    }
+    const donation = await pool.query(
+      "INSERT INTO donation_table(donator,gender,category,condition) VALUES ($1,$2,$3,$4) RETURNING *",
+      [donator, gender, category, condition]
+    );
+    const result = await pool.query(
+      "SELECT * FROM user_table WHERE username=$1",
+      [donator]
+    );
+    const balance = result.rows[0].credit;
+    const newBalance = balance + earnedCredit;
+    await pool.query("UPDATE user_table SET credit=$1 WHERE username=$2", [
+      newBalance,
+      donator,
+    ]);
+    await pool.query("COMMIT");
 
-      res.json(donation.rows[0]);
-
-  } catch (err){
-      console.error(err.message);
-      await pool.query("ROLLBACK");
-  }
-
-});
-
-app.get("/display_donations",async(req,res)=>{
-  try{
-      const {username}=req.body;
-      const result=await pool.query("SELECT * FROM donation_table WHERE donator=$1",[username]);
-      res.json(result.rows);
-
-  } catch(err){
-      console.error(err.message);
+    res.json(donation.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    await pool.query("ROLLBACK");
   }
 });
 
-
+app.get("/display_donations", async (req, res) => {
+  try {
+    const { username } = req.body;
+    const result = await pool.query(
+      "SELECT * FROM donation_table WHERE donator=$1",
+      [username]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
 
 app.listen(4000 || process.env.PORT, () =>
   console.log(`app is running on port ${process.env.PORT}`)
