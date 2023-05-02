@@ -93,7 +93,8 @@ app.post("/register", async (req, res) => {
         } else {
           pool.query(
             `INSERT INTO user_table (username, email, password, credit)
-                            VALUES ($1, $2, $3, $4)`,
+                            VALUES ($1, $2, $3, $4)
+                            RETURNING *`,
             [username, email, hashedPassword, credit],
             (err, results) => {
               if (err) {
@@ -103,6 +104,7 @@ app.post("/register", async (req, res) => {
                 username: username,
                 email: email,
                 credit: credit,
+                charity: results.charity,
               });
             }
           );
@@ -142,6 +144,7 @@ app.post("/login", async (req, res) => {
     username: user.username,
     email: user.email,
     credit: user.credit,
+    charity: user.charity,
   });
 });
 
