@@ -115,39 +115,34 @@ app.post("/register", async (req, res) => {
 app.post("/login", async (req, res) => {
   let { email, password } = req.body;
 
-  let hashedPassword = await bcrypt.hash(password, 10);
-
-  pool.query(
+  const validUser = await pool.query(
     `select * FROM user_table
         WHERE email = $1`,
-    [email],
-    (err, results) => {
-      if (err) {
-        throw err;
-      }
-      if (results.rows.length === 0) {
-        res.json({ err: "User does not exist" });
-      } else {
-        // pool.query(
-        //   `SELECT * FROM user_table`,
-        //   [username, email, hashedPassword, credit],
-        //   (err, results) => {
-        //     if (err) {
-        //       throw err;
-        //     }
-        //     console.log(results.rows);
-        //     res.json({ username: username, email: email });
-        //   }
-        // );
-        let user = results.rows[0];
-        res.json({
-          username: user.username,
-          email: user.email,
-          credit: user.credit,
-        });
-      }
-    }
+    [email]
   );
+
+  if (validUser.rows.length === 0) {
+    res.json({ err: "User does not exist" });
+    return;
+  }
+
+  const validPassword = await bcrypt.compare(
+    password,
+    validUser.rows[0].password
+  );
+
+  if (!validPassword) {
+    res.json({ err: "Password is incorrect" });
+    return;
+  }
+
+  let user = validUser.rows[0];
+
+  res.json({
+    username: user.username,
+    email: user.email,
+    credit: user.credit,
+  });
 });
 
 app.get("/display_user_info", async (req, res) => {
