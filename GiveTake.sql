@@ -43,3 +43,12 @@ CREATE TABLE rating_table (
     content VARCHAR(1000)
 );
 
+CREATE TABLE donation_table{
+    donation_id BIGSERIAL NOT NULL PRIMARY KEY,
+    donator VARCHAR(150) NOT NULL REFERENCES user_table(username),
+    gender VARCHAR(50) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    condition VARCHAR(50) NOT NULL
+};
+
+

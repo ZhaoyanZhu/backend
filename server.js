@@ -262,6 +262,60 @@ app.post("/list_items",async(req,res)=>{
     }
 });
 
+app.post("/donation",async(req,res)=>{
+    try{
+        const {donator,gender,category,condition}=req.body;
+        earnedCredit=0;  
+        if (gender=="men"){
+            earnedCredit+=100;
+        }   
+        if (gender=="women"){
+            earnedCredit+=100;
+        }
+        if (gender=="kids"){
+            earnedCredit+=50;
+        }
+        if (category=="clothing"){
+            earnedCredit+=100;
+        }
+        if (category=="shoes"){
+            earnedCredit+=50;
+        }
+        if (condition=="half new"){
+            earnedCredit-=25;
+        }
+        if (condition=="old"){
+            earnedCredit-=50;
+        }
+        const donation=await pool.query(
+            "INSERT INTO donation_table(donator,gender,category,condition) VALUES ($1,$2,$3,$4) RETURNING *",
+            [donator,gender,category,condition]
+        );
+        const result=await pool.query("SELECT * FROM user_table WHERE username=$1",[donator]);
+        const balance=result.rows[0].credit;
+        const newBalance=balance+earnedCredit;
+        await pool.query("UPDATE user_table SET credit=$1 WHERE username=$2",[newBalance,donator]);
+        await pool.query("COMMIT");
+
+        res.json(donation.rows[0]);
+        
+    } catch (err){
+        console.error(err.message);
+        await pool.query("ROLLBACK");
+    }
+
+});
+
+app.get("/display_donations",async(req,res)=>{
+    try{
+        const {username}=req.body;
+        const result=await pool.query("SELECT * FROM donation_table WHERE donator=$1",[username]);
+        res.json(result.rows);
+        
+    } catch(err){
+        console.error(err.message);
+    }
+});
 
 app.post("/purchase",async(req,res)=>{
     try {
@@ -307,6 +361,7 @@ app.post("/purchase",async(req,res)=>{
         await pool.query('ROLLBACK');
     }
 });
+
 
 
 app.listen(4000 || process.env.PORT, () =>
