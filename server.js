@@ -464,10 +464,28 @@ app.post("/purchase", async (req, res) => {
     console.error(err.message);
   }
 });
+
+// get item details
+app.post("/item_details", async (req, res) => {
+  try {
+    const { item_id } = req.body;
+    const result = await pool.query(
+      "SELECT * FROM item_table WHERE item_id=$1",
+      [item_id]
+    );
+    res.json(result.rows[0]);
+    console.log(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
+
 // add items to the shopping cart
 app.post("/cart", async (req, res) => {
-  const { user, item_id } = req.body;
-  if (!user) {
+  const { user_email, item_id } = req.body;
+  console.log(req.body);
+
+  if (!user_email) {
     res.json({ err: "please login first" });
     return;
   }
@@ -479,7 +497,7 @@ app.post("/cart", async (req, res) => {
     );
 
     res
-      .status(201)
+      .status(200)
       .json({ message: "Item added to cart", data: result.rows[0] });
   } catch (err) {
     console.error(err);
