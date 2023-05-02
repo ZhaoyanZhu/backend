@@ -49,16 +49,6 @@ app.get("/login", checkAuthenticated, (req, res) => {
   res.json("login");
 });
 
-// app.get("/dashboard", checkNotAuthenticated, (req, res) => {
-//   res.json({ user: req.user.name });
-// });
-
-// app.get("/logout", (req, res) => {
-//   // req.logOut();
-//   // req.flash('success_msg', "You have logged out");
-//   // res.redirect('/users/login');
-// });
-
 app.post("/register", async (req, res) => {
   let { username, email, password, password2 } = req.body;
   const credit = 1000;
@@ -451,22 +441,6 @@ app.put("/new_donation", (req, res) => {
   res.json({});
 });
 
-// app.post("/donation");
-
-app.post("/item_details", async (req, res) => {
-  try {
-    const { item_id } = req.body;
-    const result = await pool.query(
-      "SELECT * FROM item_table WHERE item_id=$1",
-      [item_id]
-    );
-    res.json(result.rows[0]);
-    // console.log(result.rows[0]);
-  } catch (err) {
-    console.error(err.message);
-  }
-});
-
 app.post("/donation_details", async (req, res) => {
   try {
     const { donation_id } = req.body;
@@ -531,16 +505,44 @@ app.post("/purchase", async (req, res) => {
     console.error(err.message);
   }
 });
-// add items to the shopping cart
-app.post("/cart", async (req, res) => {
+
+// get item details
+app.post("/item_details", async (req, res) => {
   try {
-    const { user, item_id } = req.body;
+    const { item_id } = req.body;
     const result = await pool.query(
-      "INSERT INTO user_table (user_name,item_id,) VALUES ($1,$2) RETURNING *"
+      "SELECT * FROM item_table WHERE item_id=$1",
+      [item_id]
     );
-    res.json(result.rows);
+    res.json(result.rows[0]);
+    console.log(result.rows[0]);
   } catch (err) {
     console.error(err.message);
+  }
+});
+
+// add items to the shopping cart
+app.post("/cart", async (req, res) => {
+  const { user_email, item_id } = req.body;
+  console.log(req.body);
+
+  if (!user_email) {
+    res.json({ err: "please login first" });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO shopping_cart (user_email, item_id) VALUES ($1, $2) RETURNING *",
+      [user_email, item_id]
+    );
+
+    res
+      .status(200)
+      .json({ message: "Item added to cart", data: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error adding item to cart", error: err });
   }
 });
 
@@ -627,12 +629,15 @@ app.get("/display_donations", async (req, res) => {
   try {
     const { username } = req.body;
     const result = await pool.query(
-      "SELECT * FROM donation_table WHERE donator=$1",
-      [username]
+      "INSERT INTO shopping_cart (user_email,item_id) VALUES ($1,$2) RETURNING *",
+      [user_email, item_id]
     );
-    res.json(result.rows);
+    res
+      .status(200)
+      .json({ message: "Item added to cart", data: result.rows[0] });
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
+    res.status(500).json({ message: "Error adding item to cart", error: err });
   }
 });
 
