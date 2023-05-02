@@ -189,7 +189,7 @@ app.get("/display_selling_history", async (req, res) => {
   }
 });
 
-app.get("/display_items", async (req, res) => {
+app.post("/display_items", async (req, res) => {
   try {
     const { category } = req.body;
     if (!category) {
@@ -297,7 +297,7 @@ app.post("/list_items", async (req, res) => {
     condition,
     description,
   } = req.body;
-
+  console.log(photo);
   if (!price) {
     res.json({ err: "price is required" });
     return;
