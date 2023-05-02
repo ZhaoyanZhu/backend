@@ -418,7 +418,10 @@ app.post("/purchase",async(req,res)=>{
 
             }  
         }
-
+    } catch (err){
+      console.error(err.message);
+      }
+});
 // add items to the shopping cart
 app.post("/cart", async (req, res) => {
   try {
