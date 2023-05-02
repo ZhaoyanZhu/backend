@@ -390,6 +390,34 @@ app.post("/purchase", async (req, res) => {
   }
 });
 
+app.post("/item_details", async (req, res) => {
+  try {
+    const { item_id } = req.body;
+    const result = await pool.query(
+      "SELECT * FROM item_table WHERE item_id=$1",
+      [item_id]
+    );
+    res.json(result.rows[0]);
+    console.log(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
+
+// add items to the shopping cart
+app.post("/cart", async (req, res) => {
+  try {
+    const { user,item_id } = req.body;
+    const result = await pool.query(
+      "INSERT INTO user_table (user_name,item_id,) VALUES ($1,$2) RETURNING *",
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
+
+
 app.listen(4000 || process.env.PORT, () =>
   console.log(`app is running on port ${process.env.PORT}`)
 );
