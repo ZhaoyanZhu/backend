@@ -130,6 +130,16 @@ app.post("/login", async (req, res) => {
   });
 });
 
+app.post("/user", async (req, res) => {
+  const { email } = req.body;
+  const user = await pool.query(
+    `select * FROM user_table
+        WHERE email = $1`,
+    [email]
+  );
+  res.json(user.rows[0]);
+});
+
 app.get("/display_purchase_history", async (req, res) => {
   try {
     const { user_name } = req.body;
