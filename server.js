@@ -25,17 +25,17 @@ app.use(
 
 app.use(express.static("public"));
 
-app.use(
-  session({
-    secret: "secret",
-    resave: false,
-    saveUninitialized: false,
-  })
-);
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(
+//   session({
+//     secret: "secret",
+//     resave: false,
+//     saveUninitialized: false,
+//   })
+// );
+// app.use(passport.initialize());
+// app.use(passport.session());
 
-app.use(flash());
+// app.use(flash());
 
 app.get("/", (req, res) => {
   res.json("Welcome to the server");
@@ -140,32 +140,6 @@ app.post("/user", async (req, res) => {
   res.json(user.rows[0]);
 });
 
-app.get("/display_purchase_history", async (req, res) => {
-  try {
-    const { user_name } = req.body;
-    const purchase_history = await pool.query(
-      "SELECT * FROM order_table WHERE buyer=$1",
-      [user_name]
-    );
-    res.json(purchase_history.rows);
-  } catch (err) {
-    console.error(err.message);
-  }
-});
-
-app.get("/display_selling_history", async (req, res) => {
-  try {
-    const { username } = req.body;
-    const sell_history = await pool.query(
-      "SELECT * FROM order_table WHERE seller=$1",
-      [username]
-    );
-    res.json(sell_history.rows);
-  } catch (err) {
-    console.error(err.message);
-  }
-});
-
 app.post("/display_items", async (req, res) => {
   try {
     const { category, gender, user } = req.body;
@@ -207,29 +181,6 @@ app.post("/display_items", async (req, res) => {
   }
 });
 
-app.post("/leave_comments", async (req, res) => {
-  try {
-    const { rating_receiver, order_id, score, content } = req.body;
-    const result = await pool.query(
-      "SELECT * FROM order_table WHERE order_id=$1",
-      [order_id]
-    );
-    const order_status = result.rows[0].order_status;
-    if (order_status != "completed") {
-      res.json({ message: "this order is not completed" });
-    } else {
-      const comment = await pool.query(
-        "INSERT INTO rating_table (rating_receiver,order_id,score,content) VALUES($1,$2,$3,$4) RETURNING *"[
-          (rating_receiver, order_id, score, content)
-        ]
-      );
-      res.json(comment.rows[0]);
-    }
-  } catch (err) {
-    console.error(err.message);
-  }
-});
-
 app.post("/get_addr", async (req, res) => {
   const { user } = req.body;
   const result = await pool.query(
@@ -243,111 +194,6 @@ app.post("/get_addr", async (req, res) => {
     return;
   }
   res.json(result.rows[0]);
-});
-
-app.get("/display_donations", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM donation_table");
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err.message);
-  }
-});
-
-app.get("/display_comments", async (req, res) => {
-  try {
-    const { username } = req.body;
-    const result = await pool.query(
-      "SELECT * FROM rating_table WHERE rating_receiver=$1",
-      [username]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err.message);
-  }
-});
-
-app.put("/shipping_order", async (req, res) => {
-  try {
-    const { order_id, tracking } = req.body;
-    const result = await pool.query(
-      "UPDATE order_table SET tracking=$1, order_status=$2 WHERE order_id=$3 RETURNING *",
-      [tracking, "shipped", order_id]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err.message);
-  }
-});
-
-app.put("/confirm_order", async (req, res) => {
-  try {
-    const { order_id } = req.body;
-    const result = await pool.query(
-      "SELECT order_status FROM order_table WHERE order_id=$1",
-      [order_id]
-    );
-    const order_status = result.rows[0].order_status;
-    if (order_status == "paid") {
-      res.json({ message: "The order hasn't shipped" });
-    } else if (order_status == "shipped") {
-      const result1 = await pool.query(
-        "UPDATE order_table SET order_status=$1 WHERE order_id=$2 RETURNING *",
-        ["completed", order_id]
-      );
-      res.json(result1.rows[0]);
-    } else {
-      res.json({
-        message: "The order has been confirmed before, can't change again",
-      });
-    }
-  } catch (err) {
-    console.error(err.message);
-  }
-});
-
-app.put("/list_items", (req, res) => {
-  const {
-    user,
-    title,
-    photo,
-    price,
-    gender,
-    category,
-    size,
-    condition,
-    description,
-  } = req.body;
-  if (!price) {
-    res.json({ err: "price is required" });
-    return;
-  }
-  if (!size) {
-    res.json({ err: "size is required" });
-    return;
-  }
-  if (!condition) {
-    res.json({ err: "condition is required" });
-    return;
-  }
-  pool.query(
-    "INSERT INTO item_table (user_listed, title, photo, price, gender, category, size, condition, description, list_time, item_status)\
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,$10)\
-       RETURNING *",
-    [
-      user,
-      title,
-      photo,
-      price,
-      gender,
-      category,
-      size,
-      condition,
-      description,
-      "in stock",
-    ]
-  );
-  res.json({});
 });
 
 app.put("/add_addr", async (req, res) => {
@@ -441,6 +287,51 @@ app.post("/donation_details", async (req, res) => {
   } catch (err) {
     console.error(err.message);
   }
+});
+
+// upload item
+app.put("/list_items", (req, res) => {
+  const {
+    user,
+    title,
+    photo,
+    price,
+    gender,
+    category,
+    size,
+    condition,
+    description,
+  } = req.body;
+  if (!price) {
+    res.json({ err: "price is required" });
+    return;
+  }
+  if (!size) {
+    res.json({ err: "size is required" });
+    return;
+  }
+  if (!condition) {
+    res.json({ err: "condition is required" });
+    return;
+  }
+  pool.query(
+    "INSERT INTO item_table (user_listed, title, photo, price, gender, category, size, condition, description, list_time, item_status)\
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,$10)\
+       RETURNING *",
+    [
+      user,
+      title,
+      photo,
+      price,
+      gender,
+      category,
+      size,
+      condition,
+      description,
+      "in stock",
+    ]
+  );
+  res.json({});
 });
 
 // get item details
@@ -610,22 +501,55 @@ app.post("/purchase", async (req, res) => {
 });
 
 // get purchased history of a user
-app.get("/purchase_history", async (req, res) => {
-  const { user_email } = req.query;
+app.post("/purchase_history", async (req, res) => {
+  const { user_email } = req.body;
+  console.log(user_email);
   if (!user_email) {
     res.json({ err: "please login first" });
     return;
   }
-  //
   try {
     const result = await pool.query(
       `SELECT pt.item_id, pt.purchase_id, pt.time, it.title, it.price, it.size, it.condition
       FROM purchase_table AS pt
       JOIN item_table AS it ON pt.item_id = it.item_id
-      WHERE pt.user_email = ?`,
+      WHERE pt.user_email = $1`,
       [user_email]
     );
     res.json(result.rows);
+    console.log(result.rows);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
+
+// add rating to purchased item
+app.post("/add_rating", async (req, res) => {
+  const { user_email, purchase_id, rating } = req.body;
+
+  const checkRating = await pool.query(
+    "SELECT rating FROM purchase_table WHERE purchase_id=$1",
+    [purchase_id]
+  );
+
+  console.log(req.body);
+
+  if (!user_email) {
+    res.json({ err: "please login first" });
+    return;
+  }
+
+  if (checkRating.rows[0].rating !== null) {
+    res.json({ err: "You have already rated this item" });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      "UPDATE purchase_table SET rating=$1 WHERE purchase_id=$2 AND user_email=$3 RETURNING *",
+      [rating, purchase_id, user_email]
+    );
+    res.json(result.rows[0]);
     console.log(result.rows);
   } catch (err) {
     console.error(err.message);
