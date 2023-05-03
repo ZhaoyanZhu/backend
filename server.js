@@ -663,6 +663,29 @@ app.post("/purchase", async (req, res) => {
   }
 });
 
+// get purchased history of a user
+app.get("/purchase_history", async (req, res) => {
+  const { user_email } = req.query;
+  if (!user_email) {
+    res.json({ err: "please login first" });
+    return;
+  }
+  //
+  try {
+    const result = await pool.query(
+      `SELECT pt.item_id, pt.purchase_id, pt.time, it.title, it.price, it.size, it.condition
+      FROM purchase_table AS pt
+      JOIN item_table AS it ON pt.item_id = it.item_id
+      WHERE pt.user_email = ?`,
+      [user_email]
+    );
+    res.json(result.rows);
+    console.log(result.rows);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
+
 app.post("/donate_item", async (req, res) => {
   try {
     const { donation_id, item_id } = req.body;
