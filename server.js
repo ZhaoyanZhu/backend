@@ -503,7 +503,8 @@ app.post("/purchase", async (req, res) => {
 // get purchased history of a user
 app.post("/purchase_history", async (req, res) => {
   const { user_email } = req.body;
-  console.log(user_email);
+  // console.log(user_email);
+
   if (!user_email) {
     res.json({ err: "please login first" });
     return;
@@ -517,7 +518,7 @@ app.post("/purchase_history", async (req, res) => {
       [user_email]
     );
     res.json(result.rows);
-    console.log(result.rows);
+    // console.log(result.rows);
   } catch (err) {
     console.error(err.message);
   }
@@ -532,7 +533,7 @@ app.post("/add_rating", async (req, res) => {
     [purchase_id]
   );
 
-  console.log(req.body);
+  // console.log(req.body);
 
   if (!user_email) {
     res.json({ err: "please login first" });
@@ -550,7 +551,7 @@ app.post("/add_rating", async (req, res) => {
       [rating, purchase_id, user_email]
     );
     res.json(result.rows[0]);
-    console.log(result.rows);
+    // console.log(result.rows);
   } catch (err) {
     console.error(err.message);
   }
