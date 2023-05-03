@@ -524,7 +524,19 @@ app.post("/item_details", async (req, res) => {
 // add items to the shopping cart
 app.post("/cart", async (req, res) => {
   const { user_email, item_id } = req.body;
-  // console.log(req.body);
+  const getSeller = await pool.query(
+    "SELECT user_listed FROM item_table WHERE item_id=$1",
+    [item_id]
+  );
+  const seller = getSeller.rows[0].user_listed;
+
+  // console.log("user_email", user_email);
+  // console.log("seller", seller);
+
+  if (seller === user_email) {
+    res.json({ err: "You cannot add your own item to cart" });
+    return;
+  }
 
   if (!user_email) {
     res.json({ err: "please login first" });
