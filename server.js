@@ -67,7 +67,7 @@ app.post("/register", async (req, res) => {
     pool.query(
       `select * FROM user_table
                 WHERE email = $1`,
-      [email],
+      [email.toUpperCase()],
       (err, results) => {
         if (results.rows.length > 0) {
           errors.push({ message: "Email already registered" });
@@ -77,14 +77,14 @@ app.post("/register", async (req, res) => {
             `INSERT INTO user_table (username, email, password, credit)
                             VALUES ($1, $2, $3, $4)
                             RETURNING *`,
-            [username, email, hashedPassword, credit],
+            [username, email.toUpperCase(), hashedPassword, credit],
             (err, results) => {
               if (err) {
                 throw err;
               }
               res.json({
                 username: username,
-                email: email,
+                email: email.toUpperCase(),
                 credit: credit,
                 charity: results.charity,
               });
@@ -102,7 +102,7 @@ app.post("/login", async (req, res) => {
   const validUser = await pool.query(
     `select * FROM user_table
         WHERE email = $1`,
-    [email]
+    [email.toUpperCase()]
   );
 
   if (validUser.rows.length === 0) {
@@ -124,7 +124,7 @@ app.post("/login", async (req, res) => {
 
   res.json({
     username: user.username,
-    email: user.email,
+    email: user.email.toUpperCase(),
     credit: user.credit,
     charity: user.charity,
   });
