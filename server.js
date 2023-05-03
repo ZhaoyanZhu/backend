@@ -474,7 +474,7 @@ app.post("/item_details", async (req, res) => {
       [item_id]
     );
     res.json(result.rows[0]);
-    console.log(result.rows[0]);
+    // console.log(result.rows[0]);
   } catch (err) {
     console.error(err.message);
   }
@@ -483,7 +483,7 @@ app.post("/item_details", async (req, res) => {
 // add items to the shopping cart
 app.post("/cart", async (req, res) => {
   const { user_email, item_id } = req.body;
-  console.log(req.body);
+  // console.log(req.body);
 
   if (!user_email) {
     res.json({ err: "please login first" });
@@ -502,6 +502,111 @@ app.post("/cart", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error adding item to cart", error: err });
+  }
+});
+
+// get items in the shopping cart
+app.get("/getCart", async (req, res) => {
+  const { user_email } = req.query;
+
+  // console.log(req.query);
+
+  if (!user_email) {
+    res.json({ err: "please login first" });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM shopping_cart
+       INNER JOIN item_table 
+       ON shopping_cart.item_id = item_table.item_id
+       WHERE shopping_cart.user_email = $1`,
+      [user_email]
+    );
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ err: err });
+  }
+});
+
+// delete items in the shopping cart
+app.delete("/deleteCartItem", async (req, res) => {
+  const { user_email, item_id } = req.body;
+  console.log(req.body);
+  if (!user_email) {
+    res.json({ err: "please login first" });
+    return;
+  }
+  try {
+    const result = await pool.query(
+      "DELETE FROM shopping_cart WHERE user_email=$1 AND item_id=$2 RETURNING *",
+      [user_email, item_id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+  }
+});
+
+// add purchased item to the purchase table
+app.post("/purchase", async (req, res) => {
+  try {
+    const { item_id, user_email } = req.body;
+    const getSeller = await pool.query(
+      "SELECT email FROM item_table WHERE item_id=$1",
+      [item_id]
+    );
+    if (user_email == getSeller.rows[0]) {
+      res.json({ message: "You cannot order your listed items" });
+    } else {
+      const result = await pool.query(
+        "SELECT * FROM item_table WHERE item_id=$1",
+        [item_id]
+      );
+      const price = result.rows[0].price;
+      const result1 = await pool.query(
+        "SELECT * FROM user_table WHERE email=$1",
+        [user_email]
+      );
+      const BuyerBalance = result1.rows[0].credit;
+      if (price > BuyerBalance) {
+        res.json({ message: "Not enough credits to make this transcation" });
+      } else {
+        const purchase = await pool.query(
+          "INSERT INTO purchase_table (item_id,user_email,time) VALUES ($1,$2,CURRENT_TIMESTAMP) RETURNING *",
+          [item_id, buyer]
+        );
+        await pool.query(
+          "UPDATE item_table SET item_status=$1 WHERE item_id=$2",
+          ["out of stock", item_id]
+        );
+        const NewBuyerBalance = BuyerBalance - price;
+        const result3 = await pool.query(
+          "SELECT * FROM user_table WHERE email=$1",
+          [getSeller.rows[0].email]
+        );
+        const SellerBalance = result3.rows[0].credit;
+        const NewSellerBalance = SellerBalance + price;
+        await pool.query("Update user_table SET credit=$1 WHERE email=$2", [
+          NewBuyerBalance,
+          user_email,
+        ]);
+        await pool.query("Update user_table SET credit=$1 WHERE email=$2", [
+          NewSellerBalance,
+          getSeller.rows[0].email,
+        ]);
+        await pool.query("COMMIT");
+
+        res.json(purchase.rows[0]);
+      }
+    }
+  } catch (err) {
+    pool.query("ROLLBACK"); // rollback the transaction if there is an error
+    console.error(err.message);
   }
 });
 
