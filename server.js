@@ -637,17 +637,10 @@ app.post("/donate_item", async (req, res) => {
 
 app.get("/display_donations", async (req, res) => {
   try {
-    const { username } = req.body;
-    const result = await pool.query(
-      "INSERT INTO shopping_cart (user_email,item_id) VALUES ($1,$2) RETURNING *",
-      [user_email, item_id]
-    );
-    res
-      .status(200)
-      .json({ message: "Item added to cart", data: result.rows[0] });
+    const result = await pool.query("SELECT * FROM donation_table");
+    res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error adding item to cart", error: err });
+    console.error(err.message);
   }
 });
 
